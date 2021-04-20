@@ -1,3 +1,6 @@
+'use strict';
+self.importScripts('./js/fetchGQL.js');
+self.importScripts('./js/idb.js');
 var cacheName = 'hello-pwa';
 var filesToCache = [
     '/',
@@ -5,6 +8,7 @@ var filesToCache = [
     './css/font.css',
     './css/style.css',
     './js/main.js',
+    './js/idb.js',
     './fonts/open-sans-v18-latin-regular.woff2',
     './images/background.png',
     './images/compass.svg',
@@ -37,3 +41,27 @@ self.addEventListener('fetch', (e) => {
         })()
     );
 });
+
+self.addEventListener("sync", (event) => {
+    if (event.tag === "send-message") {
+        event.waitUntil(sendToServer())
+    }
+})
+
+const sendToServer = async () => {
+    try {
+        const outbox = await loadNewAnimalData("outbox")
+        console.log("outbox", outbox)
+        const sentMessages = await Promise.all(
+            outbox.map(async (message) => {
+                console.log("message", message)
+                await addAnimal(message)
+            })
+        )
+        console.log("sent messages", sentMessages)
+        await clearNewAnimalData("outbox")
+        await clearNewAnimalData("cache")
+    } catch (e) {
+        console.log(e.message);
+    }
+};
